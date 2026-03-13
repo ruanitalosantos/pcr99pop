@@ -217,12 +217,17 @@
             </a>
         </div>
         <div class="mt-auto p-3 border-top border-secondary bg-dark bg-opacity-25">
-            <div class="d-flex align-items-center gap-3">
-                <div class="bg-white rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold shadow-sm"
-                    style="width: 40px; height: 40px;">U</div>
-                <div class="small text-white">
-                    <div class="fw-bold">Participante</div>
+            <div class="d-flex align-items-center justify-content-between w-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-white rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold shadow-sm"
+                        style="width: 40px; height: 40px;">U</div>
+                    <div class="small text-white">
+                        <div class="fw-bold">{{ $json.nomeCompleto }}</div>
+                    </div>
                 </div>
+                <a href="https://login.recife.pe.gov.br/auth/realms/recife/protocol/openid-connect/logout?redirect_uri=https://conecta.recife.pe.gov.br" class="text-white opacity-75 hover-opacity-100" title="Sair">
+                    <i class="bi bi-box-arrow-right fs-4"></i>
+                </a>
             </div>
         </div>
     </nav>
@@ -269,20 +274,20 @@
                         <div class="col-md-12">
                             <label class="form-label required">1. Nome Completo</label>
                             <input type="text" class="form-control" placeholder="Seu nome completo" required
-                                id="nomeCompleto">
+                                id="nomeCompleto" value="{{ $json.nomeCompleto }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label required">2. CPF</label>
-                            <input type="text" class="form-control" placeholder="000.000.000-00" required id="cpf" maxlength="14" minlength="14" pattern="\d{3}\.\d{3}\.\d{3}-\d{2}">
+                            <input type="text" class="form-control" placeholder="000.000.000-00" required id="cpf" maxlength="14" minlength="14" pattern="\d{3}\.\d{3}\.\d{3}-\d{2}" value="{{ $json.cpf }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label required">3. E-mail</label>
                             <input type="email" class="form-control" placeholder="seu.email@exemplo.com" required
-                                id="email">
+                                id="email" value="{{ $json.email }}">
                         </div>
                         <div class="col-md-12">
                             <label class="form-label required">4. Número de celular (com DDD)</label>
-                            <input type="tel" class="form-control" placeholder="(81) 90000-0000" required id="telefone" maxlength="15" minlength="14" pattern="\(\d{2}\)\s\d{4,5}-\d{4}">
+                            <input type="tel" class="form-control" placeholder="(81) 90000-0000" required id="telefone" maxlength="15" minlength="14" pattern="\(\d{2}\)\s\d{4,5}-\d{4}" value="{{ $json.telefone }}">
                         </div>
                     </div>
                 </div>
@@ -400,6 +405,31 @@
             updateSubmitButtonState();
         }
 
+        // Apply readonly to pre-filled fields
+        function applyReadonlyToPreFilledFields() {
+            const fields = ['nomeCompleto', 'cpf', 'email', 'telefone'];
+            fields.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+
+                const val = el.value.trim();
+                // Check if value is "undefined", "null", empty or a template placeholder
+                const isInvalid = val === '' || val === 'undefined' || val === 'null' || val.includes('{{');
+
+                if (isInvalid) {
+                    // Clear value if it's strictly "undefined" or "null" string
+                    if (val === 'undefined' || val === 'null') {
+                        el.value = '';
+                    }
+                    el.readOnly = false;
+                    el.classList.remove('bg-light');
+                } else {
+                    el.readOnly = true;
+                    el.classList.add('bg-light'); // Visual feedback
+                }
+            });
+        }
+
         // Real-time Validation
         function updateSubmitButtonState() {
             const form = document.getElementById('formInscricao');
@@ -471,8 +501,19 @@
                     });
 
                     if (response.ok) {
-                        const modal = new bootstrap.Modal(document.getElementById('successModal'));
+                        const modalEl = document.getElementById('successModal');
+                        const modal = new bootstrap.Modal(modalEl);
                         modal.show();
+                        
+                        modalEl.addEventListener('hidden.bs.modal', function () {
+                            window.location.href = 'https://conecta.recife.pe.gov.br';
+                        });
+
+                        // Fallback redirect after 5 seconds if modal isn't closed
+                        setTimeout(() => {
+                            window.location.href = 'https://conecta.recife.pe.gov.br';
+                        }, 5000);
+
                         this.reset();
                         this.classList.remove('was-validated');
                         toggleCNHNumber();
@@ -546,6 +587,7 @@
                     el.addEventListener('change', updateSubmitButtonState);
                 });
                 // Initial check
+                applyReadonlyToPreFilledFields();
                 updateSubmitButtonState();
             }
         });
